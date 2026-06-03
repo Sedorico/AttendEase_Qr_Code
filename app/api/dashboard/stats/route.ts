@@ -3,8 +3,7 @@ import connectDB from '@/lib/db';
 import Attendance from '@/lib/models/Attendance';
 import Employee from '@/lib/models/Employee';
 import { getAuthFromCookies } from '@/lib/auth';
-import { ApiResponse, DashboardStats } from '@/types';
-import { WORK_START_HOUR, WORK_START_MINUTE, LATE_THRESHOLD_MINUTES } from '@/lib/constants';
+import { ApiResponse } from '@/types';
 
 export async function GET() {
   try {
@@ -26,52 +25,35 @@ export async function GET() {
 
     await connectDB();
 
-    // Get total active employees
-    const totalEmployees = await Employee.countDocuments({ isActive: true });
-
-    // Get today's date range
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Get today's TIME_IN records
-    const todayTimeIns = await Attendance.find({
-      type: 'TIME_IN',
-      timestamp: { $gte: today, $lt: tomorrow },
-    }).populate('employeeId');
+    const totalEmployees = await Employee.countDocuments({ isActive: true });
 
-    // Calculate present and late
-    const lateTime = WORK_START_HOUR * 60 + WORK_START_MINUTE + LATE_THRESHOLD_MINUTES;
-    
-    let presentToday = 0;
-    let lateToday = 0;
+    const todayAttendance = await Attendance.find({
+      timeIn: { $gte: today, $lt: tomorrow },
+    }).lean();
 
-    todayTimeIns.forEach(record => {
-      const recordTime = new Date(record.timestamp);
-      const actualTime = recordTime.getHours() * 60 + recordTime.getMinutes();
-      
-      if (actualTime > lateTime) {
-        lateToday++;
-      } else {
-        presentToday++;
-      }
-    });
+    const present = todayAttendance.filter((r) =>
+      ['in_progress', 'complete', 'overtime'].includes(r.status)
+    ).length;
 
-    const absentToday = totalEmployees - (presentToday + lateToday);
+    const late = 0; // No late tracking per business rules
 
-    const stats: DashboardStats = {
-      totalEmployees,
-      presentToday,
-      lateToday,
-      absentToday: Math.max(0, absentToday),
-      onLeave: 0, // Can be extended for leave management
-    };
+    const absent = Math.max(0, totalEmployees - todayAttendance.length);
 
-    return NextResponse.json<ApiResponse<{ stats: DashboardStats }>>(
+    return NextResponse.json<ApiResponse>(
       {
         success: true,
-        data: { stats },
+        data: {
+          totalEmployees,
+          present,
+          late,
+          absent,
+          onLeave: 0,
+        },
       },
       { status: 200 }
     );

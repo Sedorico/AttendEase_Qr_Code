@@ -5,7 +5,6 @@ import Employee from '@/lib/models/Employee';
 import { getAuthFromCookies } from '@/lib/auth';
 import { ApiResponse, AttendanceChartData } from '@/types';
 import { subDays, format, startOfDay, endOfDay } from 'date-fns';
-import { WORK_START_HOUR, WORK_START_MINUTE, LATE_THRESHOLD_MINUTES } from '@/lib/constants';
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,7 +30,6 @@ export async function GET(request: NextRequest) {
     const days = parseInt(searchParams.get('days') || '7');
 
     const totalEmployees = await Employee.countDocuments({ isActive: true });
-    const lateTime = WORK_START_HOUR * 60 + WORK_START_MINUTE + LATE_THRESHOLD_MINUTES;
 
     const chartData: AttendanceChartData[] = [];
 
@@ -40,39 +38,29 @@ export async function GET(request: NextRequest) {
       const dayStart = startOfDay(day);
       const dayEnd = endOfDay(day);
 
-      const timeIns = await Attendance.find({
-        type: 'TIME_IN',
-        timestamp: { $gte: dayStart, $lte: dayEnd },
-      });
+      const records = await Attendance.find({
+        timeIn: { $gte: dayStart, $lte: dayEnd },
+      }).lean();
 
-      let present = 0;
-      let late = 0;
+      const present = records.filter((r) =>
+        ['in_progress', 'complete', 'overtime'].includes(r.status)
+      ).length;
 
-      timeIns.forEach(record => {
-        const recordTime = new Date(record.timestamp);
-        const actualTime = recordTime.getHours() * 60 + recordTime.getMinutes();
-        
-        if (actualTime > lateTime) {
-          late++;
-        } else {
-          present++;
-        }
-      });
-
-      const absent = Math.max(0, totalEmployees - present - late);
+      const undertime = records.filter((r) => r.status === 'undertime').length;
+      const absent = Math.max(0, totalEmployees - records.length);
 
       chartData.push({
         date: format(day, 'MMM d'),
         present,
-        late,
+        late: undertime,
         absent,
       });
     }
 
-    return NextResponse.json<ApiResponse<{ chartData: AttendanceChartData[] }>>(
+    return NextResponse.json<ApiResponse<{ weekly: AttendanceChartData[] }>>(
       {
         success: true,
-        data: { chartData },
+        data: { weekly: chartData },
       },
       { status: 200 }
     );
