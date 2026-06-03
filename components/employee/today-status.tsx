@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { LogIn, LogOut, CheckCircle2, XCircle, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import useSWR from 'swr';
-import { cn } from '@/lib/utils';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -13,6 +12,7 @@ export function TodayStatus() {
     refreshInterval: 30000,
   });
 
+  // API returns timeIn/timeOut as raw date strings (not wrapped in { timestamp })
   const timeIn  = data?.data?.timeIn;
   const timeOut = data?.data?.timeOut;
 
@@ -58,8 +58,8 @@ export function TodayStatus() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            <TimeCard type="in"  timestamp={timeIn?.timestamp}  icon={LogIn}  />
-            <TimeCard type="out" timestamp={timeOut?.timestamp} icon={LogOut} />
+            <TimeCard type="in"  timestamp={timeIn}  icon={LogIn}  />
+            <TimeCard type="out" timestamp={timeOut} icon={LogOut} />
           </div>
         )}
       </div>
@@ -69,7 +69,7 @@ export function TodayStatus() {
 
 interface TimeCardProps {
   type: 'in' | 'out';
-  timestamp?: string;
+  timestamp?: string | null;
   icon: typeof LogIn;
 }
 

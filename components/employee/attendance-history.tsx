@@ -4,71 +4,61 @@ import { motion } from 'framer-motion';
 import { History, Clock, Calendar, CheckCircle2, AlertCircle, XCircle, MinusCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import useSWR from 'swr';
-import { cn } from '@/lib/utils';
-import { AttendanceRecord } from '@/types';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-const statusConfig = {
+type DisplayStatus = 'present' | 'late' | 'absent' | 'half-day' | 'in_progress';
+
+interface HistoryRecord {
+  date: string;
+  timeIn?: string;
+  timeOut?: string;
+  duration?: string;
+  status: DisplayStatus;
+}
+
+const statusConfig: Record<DisplayStatus, {
+  icon: any; color: string; bg: string; label: string;
+  pillBg: string; pillBorder: string; numColor: string; lblColor: string;
+}> = {
   present: {
-    icon: CheckCircle2,
-    color: '#16A34A',
-    bg: 'rgba(34,197,94,0.08)',
-    border: 'rgba(34,197,94,0.15)',
-    label: 'Present',
-    pillBg: 'rgba(34,197,94,0.08)',
-    pillBorder: 'rgba(34,197,94,0.15)',
-    numColor: '#16A34A',
-    lblColor: 'rgba(22,163,74,0.7)',
+    icon: CheckCircle2, color: '#16A34A', bg: 'rgba(34,197,94,0.08)', label: 'Present',
+    pillBg: 'rgba(34,197,94,0.08)', pillBorder: 'rgba(34,197,94,0.15)',
+    numColor: '#16A34A', lblColor: 'rgba(22,163,74,0.7)',
   },
   late: {
-    icon: AlertCircle,
-    color: '#CA8A04',
-    bg: 'rgba(234,179,8,0.08)',
-    border: 'rgba(234,179,8,0.15)',
-    label: 'Late',
-    pillBg: 'rgba(234,179,8,0.08)',
-    pillBorder: 'rgba(234,179,8,0.15)',
-    numColor: '#CA8A04',
-    lblColor: 'rgba(202,138,4,0.7)',
+    icon: AlertCircle, color: '#CA8A04', bg: 'rgba(234,179,8,0.08)', label: 'Late',
+    pillBg: 'rgba(234,179,8,0.08)', pillBorder: 'rgba(234,179,8,0.15)',
+    numColor: '#CA8A04', lblColor: 'rgba(202,138,4,0.7)',
   },
   absent: {
-    icon: XCircle,
-    color: '#DC2626',
-    bg: 'rgba(239,68,68,0.08)',
-    border: 'rgba(239,68,68,0.15)',
-    label: 'Absent',
-    pillBg: 'rgba(239,68,68,0.08)',
-    pillBorder: 'rgba(239,68,68,0.15)',
-    numColor: '#DC2626',
-    lblColor: 'rgba(220,38,38,0.7)',
+    icon: XCircle, color: '#DC2626', bg: 'rgba(239,68,68,0.08)', label: 'Absent',
+    pillBg: 'rgba(239,68,68,0.08)', pillBorder: 'rgba(239,68,68,0.15)',
+    numColor: '#DC2626', lblColor: 'rgba(220,38,38,0.7)',
   },
   'half-day': {
-    icon: MinusCircle,
-    color: '#C49426',
-    bg: 'rgba(196,148,38,0.08)',
-    border: 'rgba(196,148,38,0.15)',
-    label: 'Half',
-    pillBg: 'rgba(196,148,38,0.08)',
-    pillBorder: 'rgba(196,148,38,0.15)',
-    numColor: '#C49426',
-    lblColor: 'rgba(196,148,38,0.7)',
+    icon: MinusCircle, color: '#C49426', bg: 'rgba(196,148,38,0.08)', label: 'Half',
+    pillBg: 'rgba(196,148,38,0.08)', pillBorder: 'rgba(196,148,38,0.15)',
+    numColor: '#C49426', lblColor: 'rgba(196,148,38,0.7)',
+  },
+  // in_progress maps to present visually
+  in_progress: {
+    icon: CheckCircle2, color: '#16A34A', bg: 'rgba(34,197,94,0.08)', label: 'Present',
+    pillBg: 'rgba(34,197,94,0.08)', pillBorder: 'rgba(34,197,94,0.15)',
+    numColor: '#16A34A', lblColor: 'rgba(22,163,74,0.7)',
   },
 };
 
 export function AttendanceHistory() {
   const { data, isLoading } = useSWR('/api/attendance/history', fetcher);
-  const history: AttendanceRecord[] = data?.data?.history || [];
+  const history: HistoryRecord[] = data?.data?.history || [];
   const summary = data?.data?.summary;
 
   return (
     <div
       style={{
-        background: '#FFFFFF',
-        border: '1px solid #E5E2DB',
-        borderRadius: '18px',
-        overflow: 'hidden',
-        transition: 'transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s ease',
+        background: '#FFFFFF', border: '1px solid #E5E2DB', borderRadius: '18px',
+        overflow: 'hidden', transition: 'transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s ease',
       }}
       onMouseEnter={e => {
         (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px) rotateX(1.2deg) rotateY(0.6deg)';
@@ -92,17 +82,15 @@ export function AttendanceHistory() {
           </div>
         </div>
 
-        {/* Summary pills */}
+        {/* Summary pills — only show present/late/absent/half */}
         {summary && (
           <div className="grid grid-cols-4 gap-2">
-            {(
-              [
-                { key: 'present',  val: summary.present  },
-                { key: 'late',     val: summary.late     },
-                { key: 'absent',   val: summary.absent   },
-                { key: 'half-day', val: summary.halfDay  },
-              ] as { key: keyof typeof statusConfig; val: number }[]
-            ).map(({ key, val }) => {
+            {([
+              { key: 'present' as const,  val: summary.present  },
+              { key: 'late' as const,     val: summary.late     },
+              { key: 'absent' as const,   val: summary.absent   },
+              { key: 'half-day' as const, val: summary.halfDay  },
+            ]).map(({ key, val }) => {
               const c = statusConfig[key];
               return (
                 <div key={key} className="rounded-[10px] py-2 text-center border"
@@ -142,15 +130,15 @@ export function AttendanceHistory() {
   );
 }
 
-function HistoryItem({ record, index }: { record: AttendanceRecord; index: number }) {
-  const config = statusConfig[record.status];
+function HistoryItem({ record, index }: { record: HistoryRecord; index: number }) {
+  const config = statusConfig[record.status] ?? statusConfig.present;
   const StatusIcon = config.icon;
 
   return (
     <motion.div
       initial={{ opacity: 0, x: -12 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ delay: index * 0.05, duration: 0.3, ease: [0.22, 1, 0.36, 1] as const }}
       className="flex items-center justify-between px-6 py-3 border-b transition-colors duration-150 cursor-default"
       style={{ borderColor: '#F0EDE6' }}
       onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = '#FAFAF8'}
@@ -163,10 +151,10 @@ function HistoryItem({ record, index }: { record: AttendanceRecord; index: numbe
         </div>
         <div>
           <p className="text-[13px] font-[600] text-[#1C1C1A]">
-            {format(new Date(record.date), 'EEEE')}
+            {format(new Date(record.date + 'T00:00:00'), 'EEEE')}
           </p>
           <p className="text-[11px] text-[#9A9890]">
-            {format(new Date(record.date), 'MMM d, yyyy')}
+            {format(new Date(record.date + 'T00:00:00'), 'MMM d, yyyy')}
           </p>
         </div>
       </div>
