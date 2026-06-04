@@ -1,3 +1,5 @@
+// FILE PATH: app/api/dashboard/stats/route.ts
+
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Attendance from '@/lib/models/Attendance';
@@ -8,19 +10,11 @@ import { ApiResponse } from '@/types';
 export async function GET() {
   try {
     const auth = await getAuthFromCookies();
-
     if (!auth) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 }
-      );
+      return NextResponse.json<ApiResponse>({ success: false, error: 'Not authenticated' }, { status: 401 });
     }
-
     if (auth.role !== 'admin') {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Access denied' },
-        { status: 403 }
-      );
+      return NextResponse.json<ApiResponse>({ success: false, error: 'Access denied' }, { status: 403 });
     }
 
     await connectDB();
@@ -36,13 +30,12 @@ export async function GET() {
       timeIn: { $gte: today, $lt: tomorrow },
     }).lean();
 
-    const present = todayAttendance.filter((r) =>
-      ['in_progress', 'complete', 'overtime'].includes(r.status)
-    ).length;
-
-    const late = 0; // No late tracking per business rules
-
-    const absent = Math.max(0, totalEmployees - todayAttendance.length);
+    // Once timed in = present
+    const present = todayAttendance.length;
+    const absent = Math.max(0, totalEmployees - present);
+    const overtime = todayAttendance.filter((r) => r.status === 'overtime').length;
+    const undertime = todayAttendance.filter((r) => r.status === 'undertime').length;
+    const complete = todayAttendance.filter((r) => r.status === 'complete').length;
 
     return NextResponse.json<ApiResponse>(
       {
@@ -50,18 +43,17 @@ export async function GET() {
         data: {
           totalEmployees,
           present,
-          late,
           absent,
-          onLeave: 0,
+          overtime,
+          undertime,
+          complete,
+          late: 0, // kept for backwards compat, always 0
         },
       },
       { status: 200 }
     );
   } catch (error) {
     console.error('Dashboard stats error:', error);
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json<ApiResponse>({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

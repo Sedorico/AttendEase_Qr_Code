@@ -1,3 +1,5 @@
+// FILE PATH: app/admin/page.tsx
+
 "use client";
 
 import { useState } from "react";
@@ -26,6 +28,7 @@ const NAV_ITEMS = [
   { icon: Settings, label: "Settings", href: "/admin/settings" },
 ];
 
+// ✅ Updated: removed late, added overtime
 const PIE_COLORS = ["#22c55e", "#C49426", "#ef4444"];
 
 function Sidebar({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }) {
@@ -46,7 +49,6 @@ function Sidebar({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => vo
       "fixed left-0 top-0 z-40 h-screen bg-white border-r border-[#E5E2DB] transition-all duration-300 flex flex-col",
       open ? "w-[220px]" : "w-[64px]"
     )}>
-      {/* Logo */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-[#F0EDE6] h-[60px]">
         {open && (
           <div className="flex items-center gap-2.5">
@@ -70,7 +72,6 @@ function Sidebar({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => vo
         )}
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5">
         {open && <p className="px-3 mb-2 text-[10px] font-bold text-[#B0AEA9] uppercase tracking-[0.1em]">Menu</p>}
         {NAV_ITEMS.map((item) => {
@@ -100,7 +101,6 @@ function Sidebar({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => vo
         })}
       </nav>
 
-      {/* Bottom */}
       <div className="px-2 py-3 border-t border-[#F0EDE6] space-y-0.5">
         <button
           onClick={handleLogout}
@@ -113,7 +113,6 @@ function Sidebar({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => vo
           <LogOut className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
           {open && "Sign Out"}
         </button>
-
         {open && (
           <div className="mt-2 pt-2 border-t border-[#F0EDE6] flex items-center gap-2.5 px-1">
             <div className="w-8 h-8 rounded-full bg-[#FBF5E6] border border-[#E5DCC0] flex items-center justify-center flex-shrink-0">
@@ -135,9 +134,12 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { user } = useAuthStore();
 
-  const { data: stats, isLoading: statsLoading, mutate: mutateStats } = useSWR("/api/dashboard/stats", fetcher, { refreshInterval: 30000 });
-  const { data: chartData, isLoading: chartLoading } = useSWR("/api/dashboard/chart", fetcher);
-  const { data: todayAttendanceData, mutate: mutateAttendance } = useSWR("/api/attendance/today", fetcher, { refreshInterval: 10000 });
+  const { data: stats, isLoading: statsLoading, mutate: mutateStats } =
+    useSWR("/api/dashboard/stats", fetcher, { refreshInterval: 30000 });
+  const { data: chartData, isLoading: chartLoading } =
+    useSWR("/api/dashboard/chart", fetcher);
+  const { data: todayAttendanceData, mutate: mutateAttendance } =
+    useSWR("/api/attendance/today", fetcher, { refreshInterval: 10000 });
 
   const todayAttendance = Array.isArray(todayAttendanceData)
     ? todayAttendanceData
@@ -145,16 +147,18 @@ export default function AdminDashboard() {
     ? todayAttendanceData.data
     : [];
 
+  // ✅ Updated: Late → Overtime
   const pieData = stats?.data ? [
     { name: "Present", value: stats.data.present || 0 },
-    { name: "Late", value: stats.data.late || 0 },
+    { name: "Overtime", value: stats.data.overtime || 0 },
     { name: "Absent", value: stats.data.absent || 0 },
   ] : [];
 
+  // ✅ Updated: "Late Today" → "Overtime Today"
   const statCards = [
     { title: "Total Employees", value: stats?.data?.totalEmployees || 0, icon: Users, color: "#C49426", trend: null },
     { title: "Present Today", value: stats?.data?.present || 0, icon: CheckCircle2, color: "#22c55e", trend: "up" },
-    { title: "Late Today", value: stats?.data?.late || 0, icon: Clock, color: "#f59e0b", trend: "down" },
+    { title: "Overtime Today", value: stats?.data?.overtime || 0, icon: Clock, color: "#f59e0b", trend: null },
     { title: "Absent Today", value: stats?.data?.absent || 0, icon: XCircle, color: "#ef4444", trend: "down" },
   ];
 
@@ -165,7 +169,6 @@ export default function AdminDashboard() {
         <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
 
         <main className={cn("transition-all duration-300 min-h-screen", sidebarOpen ? "ml-[220px]" : "ml-[64px]")}>
-          {/* Top bar */}
           <header className="sticky top-0 z-30 flex items-center justify-between px-6 h-[60px] bg-white border-b border-[#E5E2DB]">
             <div className="flex items-center gap-3">
               <button
@@ -180,7 +183,6 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {/* Scanner Kiosk Button */}
               <button
                 onClick={() => router.push("/scanner")}
                 className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-[12px] font-medium text-[#C49426] bg-[#FBF5E6] border border-[#E5DCC0] hover:bg-[#F5EDD0] transition-colors"
@@ -230,7 +232,7 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-            {/* Charts Row */}
+            {/* Charts */}
             <div className="grid lg:grid-cols-3 gap-4">
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
@@ -253,7 +255,8 @@ export default function AdminDashboard() {
                             <stop offset="5%" stopColor="#22c55e" stopOpacity={0.15} />
                             <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
                           </linearGradient>
-                          <linearGradient id="gLate" x1="0" y1="0" x2="0" y2="1">
+                          {/* ✅ Changed: late → overtime gradient */}
+                          <linearGradient id="gOvertime" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#C49426" stopOpacity={0.15} />
                             <stop offset="95%" stopColor="#C49426" stopOpacity={0} />
                           </linearGradient>
@@ -266,7 +269,8 @@ export default function AdminDashboard() {
                           cursor={{ stroke: "#E5E2DB" }}
                         />
                         <Area type="monotone" dataKey="present" stroke="#22c55e" fill="url(#gPresent)" strokeWidth={2} name="Present" />
-                        <Area type="monotone" dataKey="late" stroke="#C49426" fill="url(#gLate)" strokeWidth={2} name="Late" />
+                        {/* ✅ Changed: late → overtime */}
+                        <Area type="monotone" dataKey="overtime" stroke="#C49426" fill="url(#gOvertime)" strokeWidth={2} name="Overtime" />
                       </AreaChart>
                     </ResponsiveContainer>
                   )}
@@ -288,7 +292,7 @@ export default function AdminDashboard() {
                     <PieChart>
                       <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={4} dataKey="value">
                         {pieData.map((_, i) => (
-                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                          <Cell key={`cell-${i}`} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                         ))}
                       </Pie>
                       <Tooltip contentStyle={{ background: "#fff", border: "1px solid #E5E2DB", borderRadius: "10px", fontSize: "12px" }} />
@@ -332,6 +336,15 @@ export default function AdminDashboard() {
                 ) : (
                   todayAttendance.slice(0, 6).map((record: any, i: number) => {
                     const initials = record.employee?.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
+                    const statusConfig: Record<string, { label: string; classes: string }> = {
+                      in_progress: { label: "In Progress", classes: "bg-blue-50 text-blue-700" },
+                      complete: { label: "Complete", classes: "bg-green-50 text-green-700" },
+                      undertime: { label: "Undertime", classes: "bg-orange-50 text-orange-700" },
+                      overtime: { label: "Overtime", classes: "bg-[#FBF5E6] text-[#9A7A1A]" },
+                      auto_signed_out: { label: "Auto Sign-out", classes: "bg-red-50 text-red-700" },
+                    };
+                    const status = statusConfig[record.status] || { label: "In Progress", classes: "bg-blue-50 text-blue-700" };
+
                     return (
                       <motion.div
                         key={record._id}
@@ -351,13 +364,10 @@ export default function AdminDashboard() {
                         </div>
                         <div className="text-right">
                           <p className="text-[13px] font-semibold text-[#1C1C1A]">
-                            {record.timestamp ? format(new Date(record.timestamp), "h:mm a") : "—"}
+                            {record.timeIn ? format(new Date(record.timeIn), "h:mm a") : "—"}
                           </p>
-                          <span className={cn(
-                            "text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full",
-                            record.type === "TIME_IN" ? "bg-green-50 text-green-700" : "bg-[#FBF5E6] text-[#9A7A1A]"
-                          )}>
-                            {record.type === "TIME_IN" ? "Time In" : "Time Out"}
+                          <span className={cn("text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full", status.classes)}>
+                            {status.label}
                           </span>
                         </div>
                       </motion.div>
