@@ -1,5 +1,3 @@
-// FILE PATH: app/api/dashboard/stats/route.ts
-
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Attendance from '@/lib/models/Attendance';
@@ -30,12 +28,19 @@ export async function GET() {
       timeIn: { $gte: today, $lt: tomorrow },
     }).lean();
 
-    // Once timed in = present
-    const present = todayAttendance.length;
-    const absent = Math.max(0, totalEmployees - present);
+    // Present = anyone who timed in today
+    const present = todayAttendance.filter((r) => r.status !== 'absent').length;
     const overtime = todayAttendance.filter((r) => r.status === 'overtime').length;
     const undertime = todayAttendance.filter((r) => r.status === 'undertime').length;
     const complete = todayAttendance.filter((r) => r.status === 'complete').length;
+
+    // Absent = only count from actual absent records (created by cron at 5PM)
+    // NOT computed as totalEmployees - present
+    const absent = todayAttendance.filter((r) => r.status === 'absent').length;
+
+    // Check if past 5PM PHT (9:00 UTC)
+    const nowUTC = new Date();
+    const isPast5PM = nowUTC.getUTCHours() >= 9; // 9 UTC = 5PM PHT
 
     return NextResponse.json<ApiResponse>(
       {
@@ -43,11 +48,12 @@ export async function GET() {
         data: {
           totalEmployees,
           present,
-          absent,
+          // Only show absent count after 5PM PHT
+          absent: isPast5PM ? absent : 0,
           overtime,
           undertime,
           complete,
-          late: 0, // kept for backwards compat, always 0
+          late: 0,
         },
       },
       { status: 200 }

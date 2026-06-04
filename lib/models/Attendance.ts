@@ -7,7 +7,8 @@ export type AttendanceStatus =
   | 'complete'
   | 'undertime'
   | 'overtime'
-  | 'auto_signed_out';
+  | 'auto_signed_out'
+  | 'absent';           // ← added
 
 export interface IAttendance extends Document {
   employeeId: mongoose.Types.ObjectId;
@@ -59,7 +60,7 @@ const AttendanceSchema = new Schema<IAttendance>(
     workMinutes: { type: Number, default: null },
     status: {
       type: String,
-      enum: ['in_progress', 'complete', 'undertime', 'overtime', 'auto_signed_out'],
+      enum: ['in_progress', 'complete', 'undertime', 'overtime', 'auto_signed_out', 'absent'],
       default: 'in_progress',
       index: true,
     },
