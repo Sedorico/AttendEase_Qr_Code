@@ -4,10 +4,12 @@ import Attendance from '@/lib/models/Attendance';
 import Employee from '@/lib/models/Employee';
 import { getAuthFromCookies } from '@/lib/auth';
 import { ApiResponse } from '@/types';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
+import { startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
-// Separate display status type — different from AttendanceStatus (DB model)
-type DisplayStatus = 'present' | 'late' | 'absent' | 'half-day';
+const HK_TZ = 'Asia/Hong_Kong';
+
+type DisplayStatus = 'present' | 'undertime' | 'overtime' | 'absent' | 'in_progress';
 
 interface HistoryRecord {
   date: string;
@@ -66,21 +68,26 @@ export async function GET(request: NextRequest) {
         const record = records.find(r => isSameDay(new Date(r.timeIn), day));
 
         if (!record) {
-          return { date: format(day, 'yyyy-MM-dd'), status: 'absent' as DisplayStatus };
+          return {
+            date: formatInTimeZone(day, HK_TZ, 'yyyy-MM-dd'),
+            status: 'absent' as DisplayStatus,
+          };
         }
 
-        // Map DB AttendanceStatus → display status
+        // Map DB status → display status
         let status: DisplayStatus;
         switch (record.status) {
           case 'complete':
-          case 'overtime':
             status = 'present';
             break;
+          case 'overtime':
+            status = 'overtime';
+            break;
           case 'undertime':
-            status = 'half-day';
+            status = 'undertime';
             break;
           case 'in_progress':
-            status = isSameDay(day, today) ? 'present' : 'half-day';
+            status = 'in_progress';
             break;
           case 'auto_signed_out':
             status = 'absent';
@@ -98,9 +105,13 @@ export async function GET(request: NextRequest) {
         }
 
         return {
-          date: format(day, 'yyyy-MM-dd'),
-          timeIn: record.timeIn ? format(new Date(record.timeIn), 'h:mm a') : undefined,
-          timeOut: record.timeOut ? format(new Date(record.timeOut), 'h:mm a') : undefined,
+          date: formatInTimeZone(new Date(record.timeIn), HK_TZ, 'yyyy-MM-dd'),
+          timeIn: record.timeIn
+            ? formatInTimeZone(new Date(record.timeIn), HK_TZ, 'h:mm a')
+            : undefined,
+          timeOut: record.timeOut
+            ? formatInTimeZone(new Date(record.timeOut), HK_TZ, 'h:mm a')
+            : undefined,
           duration,
           status,
         };
@@ -108,10 +119,10 @@ export async function GET(request: NextRequest) {
       .reverse();
 
     const summary = {
-      present:  history.filter(h => h.status === 'present').length,
-      late:     history.filter(h => h.status === 'late').length,
-      absent:   history.filter(h => h.status === 'absent').length,
-      halfDay:  history.filter(h => h.status === 'half-day').length,
+      present:   history.filter(h => h.status === 'present').length,
+      overtime:  history.filter(h => h.status === 'overtime').length,
+      absent:    history.filter(h => h.status === 'absent').length,
+      undertime: history.filter(h => h.status === 'undertime').length,
       totalDays: history.length,
     };
 

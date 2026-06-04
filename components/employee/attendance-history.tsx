@@ -1,13 +1,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { History, Clock, Calendar, CheckCircle2, AlertCircle, XCircle, MinusCircle } from 'lucide-react';
+import { History, Clock, Calendar, CheckCircle2, XCircle, MinusCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { format } from 'date-fns';
 import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-type DisplayStatus = 'present' | 'late' | 'absent' | 'half-day' | 'in_progress';
+type DisplayStatus = 'present' | 'undertime' | 'overtime' | 'absent' | 'in_progress';
 
 interface HistoryRecord {
   date: string;
@@ -26,22 +26,21 @@ const statusConfig: Record<DisplayStatus, {
     pillBg: 'rgba(34,197,94,0.08)', pillBorder: 'rgba(34,197,94,0.15)',
     numColor: '#16A34A', lblColor: 'rgba(22,163,74,0.7)',
   },
-  late: {
-    icon: AlertCircle, color: '#CA8A04', bg: 'rgba(234,179,8,0.08)', label: 'Late',
-    pillBg: 'rgba(234,179,8,0.08)', pillBorder: 'rgba(234,179,8,0.15)',
-    numColor: '#CA8A04', lblColor: 'rgba(202,138,4,0.7)',
+  overtime: {
+    icon: TrendingUp, color: '#C49426', bg: 'rgba(196,148,38,0.08)', label: 'Overtime',
+    pillBg: 'rgba(196,148,38,0.08)', pillBorder: 'rgba(196,148,38,0.15)',
+    numColor: '#C49426', lblColor: 'rgba(196,148,38,0.7)',
+  },
+  undertime: {
+    icon: TrendingDown, color: '#EA580C', bg: 'rgba(234,88,12,0.08)', label: 'Undertime',
+    pillBg: 'rgba(234,88,12,0.08)', pillBorder: 'rgba(234,88,12,0.15)',
+    numColor: '#EA580C', lblColor: 'rgba(234,88,12,0.7)',
   },
   absent: {
     icon: XCircle, color: '#DC2626', bg: 'rgba(239,68,68,0.08)', label: 'Absent',
     pillBg: 'rgba(239,68,68,0.08)', pillBorder: 'rgba(239,68,68,0.15)',
     numColor: '#DC2626', lblColor: 'rgba(220,38,38,0.7)',
   },
-  'half-day': {
-    icon: MinusCircle, color: '#C49426', bg: 'rgba(196,148,38,0.08)', label: 'Half',
-    pillBg: 'rgba(196,148,38,0.08)', pillBorder: 'rgba(196,148,38,0.15)',
-    numColor: '#C49426', lblColor: 'rgba(196,148,38,0.7)',
-  },
-  // in_progress maps to present visually
   in_progress: {
     icon: CheckCircle2, color: '#16A34A', bg: 'rgba(34,197,94,0.08)', label: 'Present',
     pillBg: 'rgba(34,197,94,0.08)', pillBorder: 'rgba(34,197,94,0.15)',
@@ -58,10 +57,11 @@ export function AttendanceHistory() {
     <div
       style={{
         background: '#FFFFFF', border: '1px solid #E5E2DB', borderRadius: '18px',
-        overflow: 'hidden', transition: 'transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s ease',
+        overflow: 'hidden',
+        transition: 'transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s ease',
       }}
       onMouseEnter={e => {
-        (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px) rotateX(1.2deg) rotateY(0.6deg)';
+        (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)';
         (e.currentTarget as HTMLDivElement).style.boxShadow = '0 24px 64px rgba(0,0,0,0.09),0 8px 24px rgba(196,148,38,0.10)';
       }}
       onMouseLeave={e => {
@@ -82,14 +82,14 @@ export function AttendanceHistory() {
           </div>
         </div>
 
-        {/* Summary pills — only show present/late/absent/half */}
+        {/* Summary pills */}
         {summary && (
           <div className="grid grid-cols-4 gap-2">
             {([
-              { key: 'present' as const,  val: summary.present  },
-              { key: 'late' as const,     val: summary.late     },
-              { key: 'absent' as const,   val: summary.absent   },
-              { key: 'half-day' as const, val: summary.halfDay  },
+              { key: 'present' as const,   val: summary.present   },
+              { key: 'overtime' as const,  val: summary.overtime  },
+              { key: 'undertime' as const, val: summary.undertime },
+              { key: 'absent' as const,    val: summary.absent    },
             ]).map(({ key, val }) => {
               const c = statusConfig[key];
               return (

@@ -8,8 +8,7 @@ import { AttendanceHistory } from '@/components/employee/attendance-history';
 import { useAuthStore } from '@/lib/stores';
 import {
   Loader2, Briefcase, Building2, Mail, Clock,
-  AlertTriangle, CheckCircle2, Timer, LogOut, TrendingDown,
-  ChevronDown, ChevronUp, X,
+  AlertTriangle, CheckCircle2, Timer, LogOut, TrendingDown, X,
 } from 'lucide-react';
 
 const fadeUp: Variants = {
@@ -28,11 +27,9 @@ interface ShiftData {
   timeOut?: string;
   workMinutes: number;
   totalMinutes: number;
-  // Overtime
   overtimeRequested: boolean;
   overtimeRequestedAt?: string;
   overtimeApproved?: boolean;
-  // Undertime
   undertimeRequested: boolean;
   undertimeRequestedAt?: string;
   undertimeApproved?: boolean;
@@ -44,11 +41,9 @@ export default function EmployeeDashboard() {
   const [shift, setShift] = useState<ShiftData | null>(null);
   const [shiftLoading, setShiftLoading] = useState(true);
 
-  // Overtime states
   const [otRequesting, setOtRequesting] = useState(false);
   const [otError, setOtError] = useState('');
 
-  // Undertime states
   const [showUndertimeModal, setShowUndertimeModal] = useState(false);
   const [undertimeReason, setUndertimeReason] = useState('');
   const [utRequesting, setUtRequesting] = useState(false);
@@ -69,11 +64,11 @@ export default function EmployeeDashboard() {
 
   useEffect(() => {
     fetchShift();
-    const interval = setInterval(fetchShift, 60000);
+    // Poll every 30 seconds for real-time progress
+    const interval = setInterval(fetchShift, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // ── Overtime request ──
   const handleOvertimeRequest = async () => {
     setOtRequesting(true);
     setOtError('');
@@ -89,7 +84,6 @@ export default function EmployeeDashboard() {
     }
   };
 
-  // ── Undertime request ──
   const handleUndertimeRequest = async () => {
     setUtRequesting(true);
     setUtError('');
@@ -114,7 +108,6 @@ export default function EmployeeDashboard() {
     }
   };
 
-  // Derived values
   const workMinutes = shift?.workMinutes ?? 0;
   const progress = Math.min(workMinutes / REQUIRED_MINUTES, 1);
   const progressPct = Math.round(progress * 100);
@@ -129,10 +122,10 @@ export default function EmployeeDashboard() {
   const isAutoSignedOut = shift?.status === 'auto_signed_out';
   const isUndertimeDone = shift?.status === 'undertime' && shift?.undertimeApproved;
 
-  // Can request overtime: shift active + 9h reached + not already requested
-  const canRequestOT = isShiftActive && shiftComplete && !shift?.overtimeRequested;
+  // OT: anytime shift is active, not already requested
+  const canRequestOT = isShiftActive && !shift?.overtimeRequested && !shift?.undertimeRequested;
 
-  // Can request undertime: shift active + not already requested either type
+  // UT: anytime shift is active, not already requested
   const canRequestUT = isShiftActive && !shift?.undertimeRequested && !shift?.overtimeRequested;
 
   const showShiftCard = !shiftLoading && shift;
@@ -172,7 +165,10 @@ export default function EmployeeDashboard() {
         {/* Welcome Header */}
         <motion.div variants={fadeUp} custom={0} initial="hidden" animate="show" className="mb-8">
           <p className="text-[11px] font-[600] tracking-[0.07em] uppercase mb-2" style={{ color: '#C49426' }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+              timeZone: 'Asia/Hong_Kong',
+            })}
           </p>
           <h1 className="text-[28px] md:text-[32px] leading-tight"
             style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 600, color: '#1C1C1A' }}>
@@ -184,9 +180,8 @@ export default function EmployeeDashboard() {
           </p>
         </motion.div>
 
-        {/* ── STATUS BANNERS ── */}
+        {/* Status Banners */}
         <div className="space-y-3 mb-5">
-          {/* Auto signed out */}
           {isAutoSignedOut && (
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
               className="flex items-center gap-3 px-5 py-4 rounded-[14px] border"
@@ -199,7 +194,6 @@ export default function EmployeeDashboard() {
             </motion.div>
           )}
 
-          {/* Undertime approved */}
           {isUndertimeDone && (
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
               className="flex items-center gap-3 px-5 py-4 rounded-[14px] border"
@@ -212,7 +206,6 @@ export default function EmployeeDashboard() {
             </motion.div>
           )}
 
-          {/* Undertime rejected */}
           {shift?.undertimeRequested && shift?.undertimeApproved === false && (
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
               className="flex items-center gap-3 px-5 py-4 rounded-[14px] border"
@@ -263,7 +256,6 @@ export default function EmployeeDashboard() {
                     <p className="text-[14px] font-[600] text-[#1C1C1A]">Shift Progress</p>
                     <p className="text-[11px] text-[#9A9890]">9 hours required · break auto-deducted</p>
                   </div>
-                  {/* Status chip */}
                   <span className={`text-[10px] font-[700] uppercase tracking-[0.06em] px-2.5 py-1 rounded-full border ${
                     shift?.status === 'in_progress' ? 'bg-blue-50 text-blue-600 border-blue-100' :
                     shift?.status === 'complete' ? 'bg-green-50 text-green-700 border-green-100' :
@@ -288,9 +280,8 @@ export default function EmployeeDashboard() {
                     </div>
                     <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: '#F0EDE6' }}>
                       <motion.div
-                        initial={{ width: 0 }}
                         animate={{ width: `${progressPct}%` }}
-                        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                         className="h-full rounded-full"
                         style={{
                           background: shiftComplete
@@ -310,19 +301,19 @@ export default function EmployeeDashboard() {
                     </div>
                   </div>
 
-                  {/* ── ACTION SECTION ── */}
+                  {/* Action Section */}
                   {isShiftActive && (
                     <div className="space-y-3 pt-1 border-t" style={{ borderColor: '#F0EDE6' }}>
 
-                      {/* OVERTIME — show when 9h reached */}
+                      {/* OVERTIME — anytime shift active */}
                       {canRequestOT && (
                         <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
                           <p className="text-[12px] text-[#9A9890] mb-2.5">
-                            You've completed 9 hours. Want to continue working?
+                            {shiftComplete
+                              ? "You've completed 9 hours. Want to continue working?"
+                              : 'Want to request overtime for today?'}
                           </p>
-                          {otError && (
-                            <p className="text-[11px] text-red-500 mb-2">{otError}</p>
-                          )}
+                          {otError && <p className="text-[11px] text-red-500 mb-2">{otError}</p>}
                           <button
                             onClick={handleOvertimeRequest}
                             disabled={otRequesting}
@@ -354,7 +345,7 @@ export default function EmployeeDashboard() {
                         </div>
                       )}
 
-                      {/* UNDERTIME — always available when shift active and no pending requests */}
+                      {/* UNDERTIME — anytime shift active */}
                       {canRequestUT && (
                         <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
                           <button
@@ -438,7 +429,7 @@ export default function EmployeeDashboard() {
         </div>
       </div>
 
-      {/* ── UNDERTIME MODAL ── */}
+      {/* UNDERTIME MODAL */}
       <AnimatePresence>
         {showUndertimeModal && (
           <motion.div
@@ -455,7 +446,6 @@ export default function EmployeeDashboard() {
               className="w-full max-w-[400px] bg-white rounded-[20px] border overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.14)]"
               style={{ borderColor: '#E5E2DB' }}
             >
-              {/* Modal header */}
               <div className="flex items-center justify-between px-6 py-5 border-b" style={{ borderColor: '#F0EDE6' }}>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0"
@@ -475,9 +465,7 @@ export default function EmployeeDashboard() {
                 </button>
               </div>
 
-              {/* Modal body */}
               <div className="px-6 py-5 space-y-4">
-                {/* Time summary */}
                 <div className="flex items-center gap-3 p-3.5 rounded-[12px] border" style={{ background: '#FAFAF8', borderColor: '#E5E2DB' }}>
                   <Clock className="w-4 h-4 flex-shrink-0" style={{ color: '#C49426' }} strokeWidth={2} />
                   <div>
@@ -492,7 +480,6 @@ export default function EmployeeDashboard() {
                   </div>
                 </div>
 
-                {/* Reason input */}
                 <div>
                   <label className="block text-[11px] font-[700] text-[#5A5855] uppercase tracking-[0.07em] mb-1.5">
                     Reason <span className="text-[#B0AEA9] normal-case font-[400]">(optional)</span>
@@ -503,9 +490,7 @@ export default function EmployeeDashboard() {
                     placeholder="e.g. Medical appointment, personal emergency…"
                     rows={3}
                     className="w-full px-3.5 py-2.5 rounded-xl border text-[13px] text-[#1C1C1A] placeholder:text-[#C2C0BB] resize-none outline-none transition-all"
-                    style={{
-                      borderColor: '#E5E2DB', background: '#FAFAF8',
-                    }}
+                    style={{ borderColor: '#E5E2DB', background: '#FAFAF8' }}
                     onFocus={(e) => {
                       e.target.style.borderColor = '#C49426';
                       e.target.style.boxShadow = '0 0 0 3px rgba(196,148,38,0.12)';
@@ -525,7 +510,6 @@ export default function EmployeeDashboard() {
                 )}
               </div>
 
-              {/* Modal footer */}
               <div className="px-6 py-4 border-t flex gap-2.5" style={{ borderColor: '#F0EDE6', background: '#FAFAF8' }}>
                 <button
                   onClick={() => setShowUndertimeModal(false)}
