@@ -17,10 +17,10 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'AttendEase - Enterprise QR Attendance System',
-    template: '%s | AttendEase',
+    default: 'AttendQR - Attendance System',
+    template: '%s | AttendQR',
   },
-  description: 'Modern enterprise-level attendance management system with secure dynamic QR codes, real-time tracking, and comprehensive analytics.',
+  description: 'Smart QR-Based Attendance Management System for 51Talk.',
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -32,16 +32,13 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'AttendEase',
+    statusBarStyle: 'default',
+    title: 'AttendQR',
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f8f9fa' },
-    { media: '(prefers-color-scheme: dark)', color: '#0a0a0f' },
-  ],
+  themeColor: '#C49426',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -55,6 +52,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} bg-background`} suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="AttendQR" />
+      </head>
       <body className="font-sans antialiased min-h-screen">
         <ThemeProvider>
           <AuthProvider>
