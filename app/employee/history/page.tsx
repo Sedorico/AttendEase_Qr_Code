@@ -1,8 +1,13 @@
+// FILE PATH: app/employee/history/page.tsx
+
 'use client';
 
 import { motion, type Variants } from 'framer-motion';
 import { AttendanceHistory } from '@/components/employee/attendance-history';
 import { History, Calendar, TrendingUp } from 'lucide-react';
+import useSWR from 'swr';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 18 },
@@ -18,6 +23,18 @@ const fadeUp: Variants = {
 };
 
 export default function HistoryPage() {
+  // ✅ Fetch attendance history data
+  const { data } = useSWR('/api/attendance/history', fetcher);
+  const summary = data?.data?.summary;
+
+  const daysPresent = summary
+    ? summary.present + summary.overtime
+    : null;
+
+  const attendanceRate = summary && summary.totalDays > 0
+    ? Math.round(((summary.present + summary.overtime) / summary.totalDays) * 100)
+    : null;
+
   return (
     <div className="min-h-screen" style={{ background: '#F5F3EE' }}>
       <style>{`
@@ -78,11 +95,14 @@ export default function HistoryPage() {
               </div>
               <span className="text-[12px] font-[600]" style={{ color: '#9A9890' }}>This Month</span>
             </div>
+            {/* ✅ Live data */}
             <p
               className="text-[32px] leading-none font-[700]"
               style={{ color: '#1C1C1A', fontFamily: "'Playfair Display', serif" }}
             >
-              --
+              {daysPresent !== null ? daysPresent : (
+                <span className="animate-pulse text-[#C2C0BB]">--</span>
+              )}
             </p>
             <p className="text-[11px] mt-1" style={{ color: '#B0AEA9' }}>Days Present</p>
           </div>
@@ -98,11 +118,16 @@ export default function HistoryPage() {
               </div>
               <span className="text-[12px] font-[600]" style={{ color: '#9A9890' }}>Attendance Rate</span>
             </div>
+            {/* ✅ Live data */}
             <p
               className="text-[32px] leading-none font-[700]"
               style={{ color: '#1C1C1A', fontFamily: "'Playfair Display', serif" }}
             >
-              --%
+              {attendanceRate !== null ? (
+                <>{attendanceRate}%</>
+              ) : (
+                <span className="animate-pulse text-[#C2C0BB]">--%</span>
+              )}
             </p>
             <p className="text-[11px] mt-1" style={{ color: '#B0AEA9' }}>Overall Rate</p>
           </div>

@@ -122,7 +122,7 @@ EmployeeSchema.methods.comparePassword = async function (
 
 // Prevent password from being returned in JSON
 EmployeeSchema.set('toJSON', {
-  transform: function (_doc, ret: Record<string, unknown>) {
+  transform: function (_doc: any, ret: any){
     delete ret['password'];
     return ret;
   },
