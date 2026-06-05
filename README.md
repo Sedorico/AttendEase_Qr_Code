@@ -160,3 +160,16 @@ If using MongoDB Atlas, ensure that the network access settings allow connection
 ## License
 
 MIT
+
+---
+
+<br>
+<br>
+
+<div align="center">
+
+<img src="https://readme-typing-svg.demolab.com?font=Orbitron&weight=900&size=38&duration=3000&pause=1000&color=60A5FA&center=true&vCenter=true&width=900&lines=CODED+BY+ZEDRICODES" />
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:000814,25:001D3D,50:003566,75:3A86FF,100:90E0EF&height=180&section=footer"/>
+
+</div>
